@@ -1,0 +1,525 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Coffee Rush · Ranking Arcade</title>
+
+<style>
+*{box-sizing:border-box}
+
+html,body{
+margin:0;width:100%;height:100%;overflow:hidden;
+font-family:system-ui,sans-serif;color:white;
+background:radial-gradient(circle at top,#5a321c,#120704 72%);
+}
+
+body{
+display:grid;
+grid-template-columns:40% 60%;
+gap:18px;
+padding:18px;
+}
+
+.card{
+background:rgba(255,255,255,.08);
+border:1px solid rgba(255,255,255,.18);
+border-radius:22px;
+padding:12px;
+box-shadow:0 18px 56px rgba(0,0,0,.34);
+display:flex;
+flex-direction:column;
+overflow:hidden;
+}
+
+.qr{
+align-items:center;
+justify-content:center;
+}
+
+.qr img{
+width:100%;
+height:100%;
+object-fit:contain;
+background:white;
+border-radius:18px;
+}
+
+.header{
+display:flex;
+align-items:center;
+justify-content:space-between;
+margin-bottom:8px;
+}
+
+.header h2{
+font-size:clamp(22px,2.25vw,34px);
+margin:0;
+}
+
+.liveBadge{
+font-size:13px;
+font-weight:900;
+color:#211008;
+background:linear-gradient(135deg,#ffd66b,#ff9e2c);
+border-radius:999px;
+padding:7px 11px;
+}
+
+.rankList{
+flex:1;
+display:flex;
+flex-direction:column;
+gap:6px;
+}
+
+.rankRow{
+display:grid;
+grid-template-columns:48px 1fr auto;
+gap:10px;
+align-items:center;
+padding:7px 11px;
+border-radius:13px;
+background:rgba(0,0,0,.25);
+font-size:clamp(15px,1.5vw,21px);
+font-weight:950;
+}
+
+.rankRow.latest{
+background:linear-gradient(135deg,rgba(255,214,107,.42),rgba(255,158,44,.20));
+box-shadow:0 0 34px rgba(255,214,107,.34);
+}
+
+.rankRow.updated{
+animation:rowPulse .9s ease;
+}
+
+.rankRow.movedUp{
+animation:rowMoveUp 1s cubic-bezier(.2,.8,.2,1);
+}
+
+.rankRow.movedDown{
+animation:rowMoveDown 1s cubic-bezier(.2,.8,.2,1);
+}
+
+@keyframes rowPulse{
+0%{transform:scale(1);background:rgba(255,214,107,.55)}
+45%{transform:scale(1.025)}
+100%{transform:scale(1)}
+}
+
+@keyframes rowMoveUp{
+0%{transform:translateY(0) scale(1)}
+25%{
+transform:translateY(-14px) scale(1.06);
+background:rgba(255,214,107,.45);
+box-shadow:0 0 40px rgba(255,214,107,.55);
+}
+60%{transform:translateY(4px) scale(.98)}
+100%{transform:translateY(0) scale(1)}
+}
+
+@keyframes rowMoveDown{
+0%{transform:translateY(0) scale(1)}
+25%{
+transform:translateY(14px) scale(.94);
+background:rgba(255,80,80,.38);
+box-shadow:0 0 32px rgba(255,80,80,.45);
+opacity:.78;
+}
+60%{transform:translateY(-3px) scale(1.01)}
+100%{transform:translateY(0) scale(1);opacity:1}
+}
+
+.rankName{
+overflow:hidden;
+white-space:nowrap;
+text-overflow:ellipsis;
+}
+
+.score{
+color:#ffd66b;
+font-variant-numeric:tabular-nums;
+}
+
+.empty{
+font-size:20px;
+font-weight:850;
+opacity:.82;
+text-align:center;
+margin-top:40px;
+}
+
+.status{
+height:24px;
+font-size:12px;
+opacity:.6;
+text-align:right;
+padding-top:6px;
+font-weight:750;
+}
+
+.arcadeOverlay{
+position:fixed;
+inset:0;
+z-index:999;
+display:none;
+place-items:center;
+background:radial-gradient(circle at center,rgba(255,214,107,.24),rgba(0,0,0,.88) 62%);
+text-align:center;
+pointer-events:none;
+}
+
+.arcadeOverlay.show{
+display:grid;
+animation:overlayFade 3.3s ease forwards;
+}
+
+.arcadeBox{
+width:min(88vw,980px);
+padding:40px 46px;
+border-radius:36px;
+background:rgba(20,9,4,.86);
+border:2px solid rgba(255,214,107,.85);
+box-shadow:0 0 70px rgba(255,214,107,.42);
+animation:arcadePop 3.3s ease forwards;
+}
+
+.arcadeKicker{
+font-size:clamp(22px,3vw,48px);
+font-weight:1000;
+color:#ffd66b;
+text-transform:uppercase;
+}
+
+.arcadeName{
+margin-top:10px;
+font-size:clamp(48px,8vw,126px);
+line-height:.95;
+font-weight:1000;
+text-transform:uppercase;
+}
+
+.arcadeScore{
+margin-top:16px;
+font-size:clamp(26px,4vw,62px);
+font-weight:1000;
+color:#ffd66b;
+}
+
+.arcadeSub{
+margin-top:10px;
+font-size:clamp(18px,2.2vw,32px);
+font-weight:850;
+}
+
+@keyframes overlayFade{
+0%{opacity:0}
+8%{opacity:1}
+82%{opacity:1}
+100%{opacity:0}
+}
+
+@keyframes arcadePop{
+0%{transform:scale(.72) rotate(-2deg)}
+12%{transform:scale(1.05) rotate(1deg)}
+22%{transform:scale(.98)}
+78%{transform:scale(1)}
+100%{transform:scale(.86)}
+}
+
+.confetti{
+position:fixed;
+width:10px;
+height:18px;
+top:-20px;
+z-index:1000;
+pointer-events:none;
+animation:confettiFall 2.8s linear forwards;
+}
+
+@keyframes confettiFall{
+0%{transform:translateY(-30px) rotate(0deg)}
+100%{transform:translateY(110vh) rotate(720deg)}
+}
+</style>
+</head>
+
+<body>
+
+<section class="card qr">
+  <img src="./cofferushPROMO.png" alt="Coffee Rush QR">
+</section>
+
+<section class="card ranking">
+  <div class="header">
+    <h2>🏆 Ranking de hoy</h2>
+    <div class="liveBadge">EN DIRECTO</div>
+  </div>
+
+  <div id="rankingList" class="rankList empty">Cargando...</div>
+  <div id="status" class="status">Conectando al ranking...</div>
+</section>
+
+<div id="arcadeOverlay" class="arcadeOverlay">
+  <div class="arcadeBox">
+    <div class="arcadeKicker">🔥 Nuevo líder</div>
+    <div id="arcadeName" class="arcadeName">Jugador</div>
+    <div id="arcadeScore" class="arcadeScore">0.00 pts</div>
+    <div class="arcadeSub">La cafetera tiene nuevo campeón ☕</div>
+  </div>
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js";
+import {
+  getFirestore,
+  collection,
+  query,
+  where,
+  onSnapshot
+} from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyD5EAMg-0p54f8bPq8SVdZ_ePg5Xso3cmg",
+  projectId: "arm1-acbba"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+const rankingList = document.getElementById("rankingList");
+const statusEl = document.getElementById("status");
+const arcadeOverlay = document.getElementById("arcadeOverlay");
+const arcadeName = document.getElementById("arcadeName");
+const arcadeScore = document.getElementById("arcadeScore");
+
+let previousScoresMap = new Map();
+let previousRanking = [];
+let firstLoad = true;
+let audioCtx = null;
+let overlayTimer = null;
+let latestPlayerName = "";
+
+function getTodayKey(){
+  const d = new Date();
+  return d.getFullYear() + "-" +
+    String(d.getMonth()+1).padStart(2,"0") + "-" +
+    String(d.getDate()).padStart(2,"0");
+}
+
+function escapeHtml(text){
+  return String(text).replace(/[&<>"']/g, c => ({
+    "&":"&amp;",
+    "<":"&lt;",
+    ">":"&gt;",
+    '"':"&quot;",
+    "'":"&#039;"
+  }[c]));
+}
+
+function getDateValue(value){
+  if(!value) return 0;
+  if(typeof value.toDate === "function") return value.toDate().getTime();
+  const parsed = new Date(value).getTime();
+  return isNaN(parsed) ? 0 : parsed;
+}
+
+function playTopSound(){
+  try{
+    if(!audioCtx){
+      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    }
+
+    if(audioCtx.state === "suspended") audioCtx.resume();
+
+    const now = audioCtx.currentTime;
+    const notes = [659.25, 880, 1174.66, 1567.98];
+
+    notes.forEach((freq, i)=>{
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+
+      osc.type = i < 2 ? "triangle" : "square";
+      osc.frequency.setValueAtTime(freq, now + i * 0.11);
+
+      gain.gain.setValueAtTime(0.001, now + i * 0.11);
+      gain.gain.exponentialRampToValueAtTime(0.12, now + i * 0.11 + 0.018);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + i * 0.11 + 0.18);
+
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+
+      osc.start(now + i * 0.11);
+      osc.stop(now + i * 0.11 + 0.2);
+    });
+  }catch(e){}
+}
+
+function launchConfetti(){
+  const colors = ["#ffd66b","#ff9e2c","#ffffff","#30d158","#0a84ff","#bf5af2"];
+
+  for(let i=0;i<80;i++){
+    const piece = document.createElement("div");
+    piece.className = "confetti";
+    piece.style.left = Math.random() * 100 + "vw";
+    piece.style.background = colors[Math.floor(Math.random() * colors.length)];
+    piece.style.animationDelay = (Math.random() * .45) + "s";
+    piece.style.animationDuration = (2.1 + Math.random() * 1.3) + "s";
+
+    document.body.appendChild(piece);
+
+    setTimeout(()=>piece.remove(),3900);
+  }
+}
+
+function showArcadeNewLeader(player){
+  arcadeName.textContent = player.name;
+  arcadeScore.textContent = player.score.toFixed(2) + " pts";
+
+  arcadeOverlay.classList.remove("show");
+  void arcadeOverlay.offsetWidth;
+  arcadeOverlay.classList.add("show");
+
+  launchConfetti();
+  playTopSound();
+
+  clearTimeout(overlayTimer);
+  overlayTimer = setTimeout(()=>{
+    arcadeOverlay.classList.remove("show");
+  },3400);
+}
+
+function renderRanking(scores, movedUpNames = new Set(), movedDownNames = new Set(), updatedNames = new Set()){
+  if(!scores.length){
+    rankingList.className = "rankList empty";
+    rankingList.innerHTML = "Aún no hay puntuaciones ☕";
+    return;
+  }
+
+  rankingList.className = "rankList";
+
+  rankingList.innerHTML = scores.slice(0,12).map((item,index)=>{
+    const pos = index + 1;
+    const medal = pos === 1 ? "🥇" : pos === 2 ? "🥈" : pos === 3 ? "🥉" : "#" + pos;
+
+    const movedUp = movedUpNames.has(item.name);
+    const movedDown = movedDownNames.has(item.name);
+    const updated = updatedNames.has(item.name);
+    const latest = item.name === latestPlayerName;
+
+    return `
+      <div class="rankRow ${latest ? "latest" : ""} ${movedUp ? "movedUp" : ""} ${movedDown ? "movedDown" : ""} ${updated ? "updated" : ""}">
+        <span>${medal}</span>
+        <span class="rankName">${escapeHtml(item.name)}</span>
+        <span class="score">${item.score.toFixed(2)}</span>
+      </div>
+    `;
+  }).join("");
+}
+
+const q = query(
+  collection(db, "cafe_scores"),
+  where("day", "==", getTodayKey())
+);
+
+onSnapshot(q, snapshot => {
+  const scores = snapshot.docs
+    .map(doc => {
+      const data = doc.data();
+
+      return {
+        name: data.name || "Anónimo",
+        score: Number(data.score || 0),
+        updatedAtMs: getDateValue(data.updatedAt),
+        createdAtMs: getDateValue(data.createdAt)
+      };
+    })
+    .sort((a,b) => b.score - a.score);
+
+  const changedPlayers = snapshot.docChanges()
+    .filter(change => change.type === "added" || change.type === "modified")
+    .map(change => {
+      const data = change.doc.data();
+
+      return {
+        name: data.name || "Anónimo",
+        score: Number(data.score || 0),
+        updatedAtMs: getDateValue(data.updatedAt),
+        createdAtMs: getDateValue(data.createdAt)
+      };
+    });
+
+  if(firstLoad){
+    const latestInitial = [...scores].sort((a,b) =>
+      Math.max(b.updatedAtMs,b.createdAtMs) - Math.max(a.updatedAtMs,a.createdAtMs)
+    )[0];
+
+    if(latestInitial){
+      latestPlayerName = latestInitial.name;
+    }
+  }else if(changedPlayers.length){
+    const latestChanged = changedPlayers.sort((a,b) =>
+      Math.max(b.updatedAtMs,b.createdAtMs) - Math.max(a.updatedAtMs,a.createdAtMs)
+    )[0];
+
+    latestPlayerName = latestChanged.name;
+  }
+
+  const movedUpNames = new Set();
+  const movedDownNames = new Set();
+  const updatedNames = new Set();
+
+  scores.forEach((player, index) => {
+    const previousIndex = previousRanking.findIndex(p => p.name === player.name);
+    const previousScore = previousScoresMap.get(player.name);
+
+    if(!firstLoad && previousScore !== undefined && previousScore !== player.score){
+      updatedNames.add(player.name);
+    }
+
+    if(!firstLoad && previousIndex !== -1){
+      if(previousIndex > index){
+        movedUpNames.add(player.name);
+      }
+
+      if(previousIndex < index){
+        movedDownNames.add(player.name);
+      }
+    }
+  });
+
+  const newTop =
+    !firstLoad &&
+    previousRanking.length > 0 &&
+    scores.length > 0 &&
+    previousRanking[0].name !== scores[0].name;
+
+  renderRanking(scores, movedUpNames, movedDownNames, updatedNames);
+
+  if(newTop){
+    showArcadeNewLeader(scores[0]);
+  }
+
+  statusEl.textContent = firstLoad
+    ? "Ranking conectado en tiempo real"
+    : newTop
+      ? "🔥 Nuevo líder: " + scores[0].name
+      : latestPlayerName
+        ? "Última puntuación: " + latestPlayerName
+        : "Ranking sincronizado";
+
+  previousRanking = scores.map(item => ({...item}));
+  previousScoresMap = new Map(scores.map(item => [item.name, item.score]));
+  firstLoad = false;
+
+}, error => {
+  console.error(error);
+  rankingList.className = "rankList empty";
+  rankingList.innerHTML = "⚠️ Error de conexión";
+  statusEl.textContent = "No se pudo conectar con Firestore";
+});
+</script>
+
+</body>
+</html>
